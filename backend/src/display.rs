@@ -1,5 +1,7 @@
-const WIDTH: usize = 32;
-const HEIGHT: usize = 64;
+#![allow(unused)]
+use std::ops::{Index, IndexMut};
+const HEIGHT: usize = 32;
+const WIDTH: usize = 64;
 const FONTS: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -53,6 +55,37 @@ fn xor(digit1: FontDigit, digit2: FontDigit) -> [u8; 5] {
         FONTS[digit1 + 4] ^ FONTS[digit2 + 4],
     ]
 }
+pub struct Display {
+    pixel: [bool; HEIGHT * WIDTH],
+}
+impl Display {
+    pub fn new() -> Self {
+        Self {
+            pixel: [false; HEIGHT * WIDTH],
+        }
+    }
+    pub fn reset(&mut self) {
+        self.pixel = [false; HEIGHT * WIDTH];
+    }
+}
+impl<T> Index<(T, T)> for Display
+where
+    T: Into<usize>,
+{
+    type Output = bool;
+
+    fn index(&self, index: (T, T)) -> &Self::Output {
+        &self.pixel[index.0.into() * WIDTH + index.1.into()]
+    }
+}
+impl<T> IndexMut<(T, T)> for Display
+where
+    T: Into<usize>,
+{
+    fn index_mut(&mut self, index: (T, T)) -> &mut Self::Output {
+        &mut self.pixel[index.0.into() * WIDTH + index.1.into()]
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -97,5 +130,16 @@ mod tests {
         ]);
         println!();
         print_font(&elem);
+    }
+    #[test]
+    fn test_display() {
+        let mut display = Display::new();
+        display[(16usize, 32usize)] = true;
+        for y in 0..HEIGHT {
+            for x in 0..WIDTH {
+                print!("{}", if display[(y, x)] { "⬜" } else { "⬛" });
+            }
+            println!("")
+        }
     }
 }

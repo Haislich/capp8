@@ -1,3 +1,5 @@
+use crate::display::Display;
+
 /// The full set of CHIP-8 instruction.
 ///
 /// http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#0.0
@@ -156,6 +158,7 @@ pub struct Emulator {
     stack_pointer: u8,
     delay: u8,
     sound: u8,
+    display: Display,
 }
 impl Emulator {
     pub fn new() -> Self {
@@ -168,6 +171,7 @@ impl Emulator {
             stack: [0; 16],
             delay: 0,
             sound: 0,
+            display: Display::new(),
         }
     }
     pub fn cycle(&mut self) {
@@ -176,7 +180,9 @@ impl Emulator {
         self.execute(instruction);
     }
     pub fn fetch(&self) -> u16 {
-        todo!()
+        let msb = self.memory[self.program_counter as usize];
+        let lsb = self.memory[(self.program_counter + 1) as usize];
+        u16::from_be_bytes([msb, lsb])
     }
     pub fn decode(&self, instruction: u16) -> Instruction {
         todo!()
