@@ -163,12 +163,14 @@ impl Emulator {
             (0xF, _, 0, 7) => Instruction::LoadDelayTimer { reg: opcode.x() },
             (0xF, _, 0, 0xA) => Instruction::WaitKeyPress { reg: opcode.x() },
             (0xF, _, 1, 5) => Instruction::SetDelayTimer { reg: opcode.x() },
+            (0xF, _, 1, 8) => Instruction::SetSoundTimer { reg: opcode.x() },
+            (0xF, _, 1, 0xE) => Instruction::AddI { reg: opcode.x() },
+            (0xF, _, 2, 9) => Instruction::SetIToSprite { reg: opcode.x() },
+            (0xF, _, 3, 3) => Instruction::StoreBCD { reg: opcode.x() },
+            (0xF, _, 5, 5) => Instruction::StoreRegisters { reg: opcode.x() },
+            (0xF, _, 6, 5) => Instruction::LoadRegisters { reg: opcode.x() },
 
-            _ => {
-                println!("{:#X}", opcode.addr());
-                Instruction::ClearScreen
-                // unimplemented!()
-            }
+            _ => unimplemented!(),
         }
     }
     pub fn execute(&mut self, instruction: Instruction) {
