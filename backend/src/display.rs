@@ -44,7 +44,7 @@ impl FontDigit {
         self.0
     }
 }
-fn xor(digit1: FontDigit, digit2: FontDigit) -> [u8; 5] {
+pub fn xor(digit1: FontDigit, digit2: FontDigit) -> [u8; 5] {
     let digit1 = digit1.get() * 5;
     let digit2 = digit2.get() * 5;
     [
