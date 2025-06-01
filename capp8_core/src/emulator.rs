@@ -1,3 +1,5 @@
+use std::ops::BitXor;
+
 use crate::{display::Display, instruction::Instruction};
 pub struct Opcode {
     n1: u8,
@@ -39,7 +41,7 @@ pub struct Emulator {
     memory: [u8; 4096],
     program_counter: u16,
     stack: [u16; 16],
-    stack_pointer: u8,
+    stack_pointer: usize,
     delay: u8,
     sound: u8,
     display: Display,
@@ -175,7 +177,70 @@ impl Emulator {
     }
     pub fn execute(&mut self, instruction: Instruction) {
         match instruction {
-            _ => unimplemented!(),
+            Instruction::Sys { addr: _ } => {
+                // TODO: Should probably add a log and ignore maybe (?)
+                unimplemented!("This should be ignored on most modern interpreters.")
+            }
+            Instruction::ClearScreen => {
+                self.display.reset();
+            }
+            Instruction::Return => {
+                self.program_counter = self.stack[self.stack_pointer];
+                self.stack_pointer -= 1;
+            }
+            Instruction::Jump { addr } => self.program_counter = addr,
+            Instruction::Call { addr } => {
+                self.stack_pointer += 1;
+                self.stack[self.stack_pointer] = self.program_counter;
+                self.program_counter = addr;
+            }
+            Instruction::SkipRegEqImm { reg, imm } => {
+                if self.v[reg] == imm {
+                    self.program_counter += 2
+                }
+            }
+            Instruction::SkipRegNeqImm { reg, imm } => {
+                if self.v[reg] != imm {
+                    self.program_counter += 2
+                }
+            }
+            Instruction::SkipRegEqReg { reg_x, reg_y } => {
+                if self.v[reg_x] == self.v[reg_y] {
+                    self.program_counter += 2
+                }
+            }
+            Instruction::StoreRegFromImm { reg, imm } => self.v[reg] = imm,
+            Instruction::StoreRegFromReg { reg_x, reg_y } => self.v[reg_x] = self.v[reg_y],
+            Instruction::AddRegImm { reg, imm } => self.v[reg] += imm,
+            Instruction::AddRegReg { reg_x, reg_y } => {
+                // TODO: Check. I think I should upcast into an u16 and then downcast
+                let (v_x, carry) = self.v[reg_x].overflowing_add(self.v[reg_y]);
+
+                self.v[reg_x] = v_x;
+                self.v[0xF] = if carry { 1 } else { 0 };
+            }
+            Instruction::OrRegReg { reg_x, reg_y } => {
+                self.v[reg_x] |= self.v[reg_y];
+            }
+            Instruction::AndRegReg { reg_x, reg_y } => {
+                self.v[reg_x] &= self.v[reg_y];
+            }
+            Instruction::SubRegReg { reg_x, reg_y } => {
+                // TODO: Check. I think they mean only subtract if Vx > Vy
+                let (v_x, borrow) = self.v[reg_x].overflowing_sub(self.v[reg_y]);
+                self.v[reg_x] = v_x;
+                self.v[0xF] = if borrow { 1 } else { 0 };
+            }
+            Instruction::ShiftRight { reg } => {
+                self.v[0xF] == self.v[reg] & 1;
+                self.v[reg] >>= 2
+            }
+            Instruction::SubnRegReg { reg_x, reg_y } => {
+                // TODO: Check. I think they mean only subtract if Vx > Vy
+                let (v_x, borrow) = self.v[reg_x].overflowing_sub(self.v[reg_y]);
+                self.v[reg_x] = v_x;
+                self.v[0xF] = if borrow { 0 } else { 1 };
+            } // _ => unimplemented!(),
         }
     }
 }

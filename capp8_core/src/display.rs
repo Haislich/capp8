@@ -108,7 +108,7 @@ mod tests {
     }
     #[test]
     fn testone() {
-        let digit1 = FontDigit::new(17).unwrap();
+        let digit1 = FontDigit::new(1).unwrap();
         let digit2 = FontDigit::new(2).unwrap();
 
         let elem = xor(digit1, digit2);

@@ -1,0 +1,8 @@
+[package]
+name = "capp8_gui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+capp8_core = { path = "../capp8_core" }
+raylib = "5.5.1"
