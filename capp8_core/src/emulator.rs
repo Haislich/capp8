@@ -1,6 +1,11 @@
-use std::ops::BitXor;
+#![allow(dead_code)]
+#![allow(unused)]
 
-use crate::{display::Display, instruction::Instruction};
+use crate::{
+    display::{Display, FONTS, FontDigit},
+    instruction::Instruction,
+};
+use rand::{Rng, rngs::ThreadRng};
 pub struct Opcode {
     n1: u8,
     n2: u8,
@@ -42,9 +47,10 @@ pub struct Emulator {
     program_counter: u16,
     stack: [u16; 16],
     stack_pointer: usize,
-    delay: u8,
-    sound: u8,
+    delay_timer: u8,
+    sound_timer: u8,
     display: Display,
+    rng: ThreadRng,
 }
 
 impl Emulator {
@@ -56,9 +62,10 @@ impl Emulator {
             memory: [0; 4096],
             stack_pointer: 0,
             stack: [0; 16],
-            delay: 0,
-            sound: 0,
+            delay_timer: 0,
+            sound_timer: 0,
             display: Display::new(),
+            rng: rand::rng(),
         }
     }
 
@@ -225,6 +232,7 @@ impl Emulator {
             Instruction::AndRegReg { reg_x, reg_y } => {
                 self.v[reg_x] &= self.v[reg_y];
             }
+            Instruction::XorRegReg { reg_x, reg_y } => self.v[reg_x] ^= self.v[reg_y],
             Instruction::SubRegReg { reg_x, reg_y } => {
                 // TODO: Check. I think they mean only subtract if Vx > Vy
                 let (v_x, borrow) = self.v[reg_x].overflowing_sub(self.v[reg_y]);
@@ -233,14 +241,68 @@ impl Emulator {
             }
             Instruction::ShiftRight { reg } => {
                 self.v[0xF] == self.v[reg] & 1;
-                self.v[reg] >>= 2
+                self.v[reg] >>= 1
             }
             Instruction::SubnRegReg { reg_x, reg_y } => {
                 // TODO: Check. I think they mean only subtract if Vx > Vy
-                let (v_x, borrow) = self.v[reg_x].overflowing_sub(self.v[reg_y]);
+                let (v_x, borrow) = self.v[reg_y].overflowing_sub(self.v[reg_x]);
                 self.v[reg_x] = v_x;
-                self.v[0xF] = if borrow { 0 } else { 1 };
-            } // _ => unimplemented!(),
+                self.v[0xF] = if borrow { 1 } else { 0 };
+            }
+            Instruction::ShiftLeft { reg } => {
+                self.v[0xF] == self.v[reg] & 0x80;
+                self.v[reg] <<= 1
+            }
+            Instruction::SkipRegNeqReg { reg_x, reg_y } => {
+                if self.v[reg_x] != self.v[reg_y] {
+                    self.program_counter += 2
+                }
+            }
+            Instruction::SetI { addr } => self.i = addr,
+            Instruction::JumpWithOffset { addr } => {
+                self.program_counter = (self.v[0] as u16) + addr;
+            }
+            Instruction::Rand { reg, mask } => {
+                self.v[reg] = self.rng.random_range(0..255) & mask;
+            }
+
+            Instruction::Draw {
+                reg_x,
+                reg_y,
+                height,
+            } => {
+                todo!()
+            }
+            Instruction::SkipIfKey { reg } => {
+                todo!()
+            }
+            Instruction::SkipIfNotKey { reg } => {
+                todo!()
+            }
+            Instruction::LoadDelayTimer { reg } => self.v[reg] = self.delay_timer,
+            Instruction::WaitKeyPress { reg } => {
+                todo!()
+            }
+            Instruction::SetDelayTimer { reg } => self.delay_timer = self.v[reg],
+            Instruction::SetSoundTimer { reg } => self.sound_timer = self.v[reg],
+            Instruction::AddI { reg } => self.i += self.v[reg] as u16,
+            Instruction::SetIToSprite { reg } => {
+                // TODO: Find a cleaenr way
+                self.i = FONTS[FontDigit::new(self.v[reg] as usize).unwrap().get()] as u16
+            }
+            Instruction::StoreBCD { reg } => {
+                todo!()
+            }
+            Instruction::StoreRegisters { reg } => {
+                for offset in 0..=reg {
+                    self.memory[(self.i as usize) + offset] = self.v[offset]
+                }
+            }
+            Instruction::LoadRegisters { reg } => {
+                for offset in 0..=reg {
+                    self.v[offset] = self.memory[(self.i as usize) + offset]
+                }
+            } // _ => todo!(),
         }
     }
 }

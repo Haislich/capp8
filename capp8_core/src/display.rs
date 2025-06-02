@@ -1,8 +1,8 @@
 #![allow(unused)]
 use std::ops::{Index, IndexMut};
-const HEIGHT: usize = 32;
-const WIDTH: usize = 64;
-const FONTS: [u8; 80] = [
+pub const HEIGHT: usize = 32;
+pub const WIDTH: usize = 64;
+pub const FONTS: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -22,7 +22,7 @@ const FONTS: [u8; 80] = [
 ];
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct FontDigit(usize);
+pub struct FontDigit(pub usize);
 #[derive(Debug)]
 pub struct FontDigitError(usize);
 impl std::fmt::Display for FontDigitError {

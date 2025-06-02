@@ -1,6 +1,6 @@
 /// The full set of CHIP-8 instruction.
 ///
-/// http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#0.0
+///Taken from [here](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#0.0).
 pub enum Instruction {
     /// 0nnn - SYS addr  
     /// Call a machine code routine at address `addr`. (Ignored on most modern interpreters.)
@@ -95,7 +95,7 @@ pub enum Instruction {
     Rand { reg: usize, mask: u8 },
 
     /// Dxyn - DRW Vx, Vy, nibble  
-    /// Display n-byte sprite starting at memory[I] at (Vx, Vy). Set VF = collision.
+    /// Display n-byte sprite starting at memory\[I\] at (Vx, Vy). Set VF = collision.
     Draw {
         reg_x: usize,
         reg_y: usize,
@@ -138,11 +138,11 @@ pub enum Instruction {
     /// Store BCD representation of Vx in memory at I, I+1, I+2.
     StoreBCD { reg: usize },
 
-    /// Fx55 - LD [I], Vx  
+    /// Fx55 - LD \[I\], Vx  
     /// Store registers V0 through Vx in memory starting at address I.
     StoreRegisters { reg: usize },
 
-    /// Fx65 - LD Vx, [I]  
+    /// Fx65 - LD Vx, \[I\]  
     /// Read registers V0 through Vx from memory starting at address I.
     LoadRegisters { reg: usize },
 }
