@@ -1,10 +1,10 @@
 use std::{fmt::Debug, ops::BitXor};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct Font([u8; 5]);
+pub struct Font([u8; 5], [bool; 20]);
 
 impl Font {
-    const FONTS: [u8; 80] = [
+    pub const FONTS: [u8; 80] = [
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
         0x20, 0x60, 0x20, 0x20, 0x70, // 1
         0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -22,19 +22,37 @@ impl Font {
         0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
         0xF0, 0x80, 0xF0, 0x80, 0x80, // F
     ];
+
+    pub fn sprite(&self) -> &[bool; 20] {
+        &self.1
+    }
 }
 impl TryFrom<usize> for Font {
     type Error = FontIndexError;
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
-        if value % 4 == 0 && value + 4 < 80 {
-            Ok(Font([
+        let value = value * 5;
+        if value + 4 < 80 {
+            let font = [
                 Font::FONTS[value],
                 Font::FONTS[value + 1],
                 Font::FONTS[value + 2],
                 Font::FONTS[value + 3],
                 Font::FONTS[value + 4],
-            ]))
+            ];
+            let mut sprite = [false; 20];
+
+            let mut cnt = 0;
+            for i in 0..5 {
+                // Only the leftmost bits are used actually
+                for shift in (4usize..8usize).rev() {
+                    sprite[i * 4 + (7 - shift)] = ((font[i] >> shift) & 1) > 0;
+                    cnt += 1;
+                }
+            }
+            println!("{cnt}");
+
+            Ok(Font(font, sprite))
         } else {
             Err(FontIndexError(value))
         }
@@ -42,7 +60,7 @@ impl TryFrom<usize> for Font {
 }
 impl From<[u8; 5]> for Font {
     fn from(value: [u8; 5]) -> Self {
-        Font(value)
+        Font(value, [false; 20])
     }
 }
 impl BitXor<Font> for Font {
@@ -67,8 +85,27 @@ impl BitXor<[u8; 5]> for Font {
 impl BitXor<Font> for [u8; 5] {
     type Output = Font;
     fn bitxor(self, rhs: Font) -> Self::Output {
-        let rhs: Font = rhs.into();
         rhs ^ self
+    }
+}
+impl std::fmt::Display for Font {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for i in 0..5 {
+            // Only the leftmost bits are used actually
+            for shift in (4usize..8usize).rev() {
+                write!(
+                    f,
+                    "{}",
+                    if ((self.0[i] >> shift) & 1) > 0 {
+                        "⬜"
+                    } else {
+                        "⬛"
+                    }
+                )?;
+            }
+            writeln!(f)?
+        }
+        Ok(())
     }
 }
 
@@ -80,3 +117,13 @@ impl std::fmt::Display for FontIndexError {
     }
 }
 impl std::error::Error for FontIndexError {}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_fonts() {
+        for value in 0..=15 {
+            println!("{}", Font::try_from(value).unwrap())
+        }
+    }
+}

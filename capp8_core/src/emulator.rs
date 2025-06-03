@@ -1,44 +1,16 @@
 #![allow(dead_code)]
 #![allow(unused)]
 
-use crate::{
-    display::{Display, FONTS, FontDigit},
-    instruction::Instruction,
+use std::{
+    fs::{File, OpenOptions},
+    io::Read,
+    path::{Path, PathBuf},
+    thread,
+    time::Duration,
 };
+
+use crate::{display::Display, fonts::Font, instruction::Instruction, opcode::Opcode};
 use rand::{Rng, rngs::ThreadRng};
-pub struct Opcode {
-    n1: u8,
-    n2: u8,
-    n3: u8,
-    n4: u8,
-}
-impl Opcode {
-    pub fn addr(&self) -> u16 {
-        u16::from_be_bytes([self.n2, (self.n3 << 4) + self.n4])
-    }
-    pub fn nibble(&self) -> u8 {
-        self.n4
-    }
-    pub fn x(&self) -> usize {
-        self.n2 as usize
-    }
-    pub fn y(&self) -> usize {
-        self.n3 as usize
-    }
-    pub fn byte(&self) -> u8 {
-        (self.n3 << 4) + self.n4
-    }
-}
-impl From<u16> for Opcode {
-    fn from(value: u16) -> Self {
-        Self {
-            n1: ((value & 0xF000) >> 12) as u8,
-            n2: ((value & 0x0F00) >> 8) as u8,
-            n3: ((value & 0x00F0) >> 4) as u8,
-            n4: (value & 0x000F) as u8,
-        }
-    }
-}
 
 pub struct Emulator {
     v: [u8; 16],
@@ -54,35 +26,48 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub fn new() -> Self {
-        Self {
+    pub fn new<P: AsRef<Path>>(rom_path: P) -> Result<Self, std::io::Error> {
+        let mut memory = [0; 4096];
+        memory[0x50..=0x9F].copy_from_slice(&Font::FONTS[..]);
+        let mut file = OpenOptions::new().read(true).open(rom_path)?;
+        let mut buf: Vec<u8> = Vec::new();
+        let file_size = file.read_to_end(&mut buf)?;
+        memory[0x200..0x200 + file_size].copy_from_slice(buf.as_slice());
+        Ok(Self {
             v: [0; 16],
             i: 0,
             program_counter: 0x200,
-            memory: [0; 4096],
+            memory,
             stack_pointer: 0,
             stack: [0; 16],
             delay_timer: 0,
             sound_timer: 0,
             display: Display::new(),
             rng: rand::rng(),
+        })
+    }
+    pub fn run(&mut self) {
+        loop {
+            self.cycle();
         }
     }
-
     pub fn cycle(&mut self) {
         let opcode = self.fetch();
+        self.program_counter += 2;
         let instruction = self.decode(opcode);
         self.execute(instruction);
+        println!("{}", self.display);
+        thread::sleep(Duration::from_millis(45));
     }
-    pub fn fetch(&self) -> u16 {
+
+    /// Read the instruction that PC is currently pointing at from memory.
+    fn fetch(&self) -> Opcode {
         let msb = self.memory[self.program_counter as usize];
         let lsb = self.memory[(self.program_counter + 1) as usize];
-        u16::from_be_bytes([msb, lsb])
+        Opcode::from(u16::from_be_bytes([msb, lsb]))
     }
-    pub fn decode(&self, opcode: u16) -> Instruction {
-        let opcode = Opcode::from(opcode);
-        let Opcode { n1, n2, n3, n4 } = opcode;
-        match (n1, n2, n3, n4) {
+    fn decode(&self, opcode: Opcode) -> Instruction {
+        match opcode.nibbles() {
             (0, 0, 0xE, 0) => Instruction::ClearScreen,
 
             (0, 0, 0xE, 0xE) => Instruction::Return,
@@ -165,7 +150,7 @@ impl Emulator {
             (0xD, _, _, _) => Instruction::Draw {
                 reg_x: opcode.x(),
                 reg_y: opcode.y(),
-                height: opcode.nibble(),
+                nibble: opcode.nibble(),
             },
             (0xE, _, 9, 0xE) => Instruction::SkipIfKey { reg: opcode.x() },
             (0xE, _, 0xA, 1) => Instruction::SkipIfNotKey { reg: opcode.x() },
@@ -269,9 +254,21 @@ impl Emulator {
             Instruction::Draw {
                 reg_x,
                 reg_y,
-                height,
+                nibble,
             } => {
-                todo!()
+                // We're assuming a specific size of the screen
+                let v_x = self.v[reg_x] & 0x3F;
+                let v_y = self.v[reg_y] & 0x1F;
+                let rows = nibble as usize;
+                let mut flip = false;
+                for row in 0..rows {
+                    flip |= self.display.draw_byte(
+                        self.memory[self.i as usize + row],
+                        v_x as usize,
+                        v_y as usize + row,
+                    )
+                }
+                self.v[0xF] = if flip { 1 } else { 0 };
             }
             Instruction::SkipIfKey { reg } => {
                 todo!()
@@ -287,8 +284,8 @@ impl Emulator {
             Instruction::SetSoundTimer { reg } => self.sound_timer = self.v[reg],
             Instruction::AddI { reg } => self.i += self.v[reg] as u16,
             Instruction::SetIToSprite { reg } => {
-                // TODO: Find a cleaenr way
-                self.i = FONTS[FontDigit::new(self.v[reg] as usize).unwrap().get()] as u16
+                // TODO: Check for errors.
+                self.i = self.v[reg] as u16;
             }
             Instruction::StoreBCD { reg } => {
                 todo!()
@@ -312,12 +309,12 @@ mod tests {
     use super::*;
     #[test]
     fn decode_sys() {
-        let emu = Emulator::new();
-        emu.decode(0xFFFF);
-        emu.decode(0x000F);
-        emu.decode(0x00F0);
-        emu.decode(0xCE00);
-        emu.decode(0x0E80);
-        emu.decode(0x0E0A);
+        // let emu = Emulator::new();
+        // emu.decode(0xFFFF);
+        // emu.decode(0x000F);
+        // emu.decode(0x00F0);
+        // emu.decode(0xCE00);
+        // emu.decode(0x0E80);
+        // emu.decode(0x0E0A);
     }
 }

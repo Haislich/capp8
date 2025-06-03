@@ -1,145 +1,97 @@
 #![allow(unused)]
 use std::ops::{Index, IndexMut};
-pub const HEIGHT: usize = 32;
-pub const WIDTH: usize = 64;
-pub const FONTS: [u8; 80] = [
-    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-    0x20, 0x60, 0x20, 0x20, 0x70, // 1
-    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-    0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-    0xF0, 0x80, 0xF0, 0x80, 0x80, // F
-];
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct FontDigit(pub usize);
-#[derive(Debug)]
-pub struct FontDigitError(usize);
-impl std::fmt::Display for FontDigitError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Invalid font digit value: {}", self.0)
-    }
-}
-impl std::error::Error for FontDigitError {}
-impl FontDigit {
-    pub fn new(val: usize) -> Result<Self, FontDigitError> {
-        if val <= 0xF {
-            Ok(FontDigit(val))
-        } else {
-            Err(FontDigitError(val))
-        }
-    }
+use crate::fonts::Font;
 
-    pub fn get(self) -> usize {
-        self.0
-    }
-}
-pub fn xor(digit1: FontDigit, digit2: FontDigit) -> [u8; 5] {
-    let digit1 = digit1.get() * 5;
-    let digit2 = digit2.get() * 5;
-    [
-        FONTS[digit1] ^ FONTS[digit2],
-        FONTS[digit1 + 1] ^ FONTS[digit2 + 1],
-        FONTS[digit1 + 2] ^ FONTS[digit2 + 2],
-        FONTS[digit1 + 3] ^ FONTS[digit2 + 3],
-        FONTS[digit1 + 4] ^ FONTS[digit2 + 4],
-    ]
-}
+#[derive(Clone)]
 pub struct Display {
-    pixel: [bool; HEIGHT * WIDTH],
+    pixel: [bool; Display::HEIGHT * Display::WIDTH],
 }
 impl Display {
+    pub const WIDTH: usize = 64;
+    pub const HEIGHT: usize = 32;
     pub fn new() -> Self {
-        Self {
-            pixel: [false; HEIGHT * WIDTH],
-        }
+        Self::default()
     }
     pub fn reset(&mut self) {
-        self.pixel = [false; HEIGHT * WIDTH];
+        self.pixel = [false; Display::HEIGHT * Display::WIDTH];
     }
-}
-impl<T> Index<(T, T)> for Display
-where
-    T: Into<usize>,
-{
-    type Output = bool;
+    pub fn draw_byte(&mut self, byte: u8, x: usize, y: usize) -> bool {
+        let mut flip = false;
+        for shift in (0usize..8usize).rev() {
+            let new_pixel = ((byte >> shift) & 1) > 0;
+            let idx = ((x + (7 - shift) % Self::HEIGHT), y % Self::HEIGHT);
+            let old_pixel = self[idx];
+            flip |= old_pixel;
+            self[idx] ^= new_pixel;
+        }
+        flip
+    }
 
-    fn index(&self, index: (T, T)) -> &Self::Output {
-        &self.pixel[index.0.into() * WIDTH + index.1.into()]
-    }
-}
-impl<T> IndexMut<(T, T)> for Display
-where
-    T: Into<usize>,
-{
-    fn index_mut(&mut self, index: (T, T)) -> &mut Self::Output {
-        &mut self.pixel[index.0.into() * WIDTH + index.1.into()]
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    fn print_font(font: &[u8]) {
-        for i in 0..5 {
-            // Only the leftmost bits are used actually
-            (4usize..8usize).rev().into_iter().for_each(|shift| {
-                print!(
-                    "{}",
-                    if ((font[i] >> shift) & 1) > 0 {
-                        "⬜"
-                    } else {
-                        "⬛"
-                    }
-                )
-            });
-            println!("")
+    pub fn font_at<T: Into<usize>>(&mut self, font: Font, x: T, y: T) {
+        let sprite = font.sprite();
+        let w = x.into();
+        let h = y.into();
+        for x in 0..4 {
+            for y in 0..5 {
+                self[(w + x, h + y)] = sprite[y * 4 + x]
+            }
         }
     }
-    #[test]
-    fn testone() {
-        let digit1 = FontDigit::new(1).unwrap();
-        let digit2 = FontDigit::new(2).unwrap();
+}
+impl Index<(usize, usize)> for Display {
+    type Output = bool;
 
-        let elem = xor(digit1, digit2);
-
-        print_font(&[
-            FONTS[digit1.get() * 5],
-            FONTS[digit1.get() * 5 + 1],
-            FONTS[digit1.get() * 5 + 2],
-            FONTS[digit1.get() * 5 + 3],
-            FONTS[digit1.get() * 5 + 4],
-        ]);
-        println!();
-        print_font(&[
-            FONTS[digit2.get() * 5],
-            FONTS[digit2.get() * 5 + 1],
-            FONTS[digit2.get() * 5 + 2],
-            FONTS[digit2.get() * 5 + 3],
-            FONTS[digit2.get() * 5 + 4],
-        ]);
-        println!();
-        print_font(&elem);
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        &self.pixel[index.1 * Display::WIDTH + index.0]
     }
+}
+
+impl IndexMut<(usize, usize)> for Display {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        &mut self.pixel[index.1 * Display::WIDTH + index.0]
+    }
+}
+impl std::fmt::Display for Display {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // write!(f, "\x1B[2J\x1B[H")?;
+        write!(f, "\x1B[H")?;
+
+        for y in 0..Display::HEIGHT {
+            for x in 0..Display::WIDTH {
+                // write!(f, "{}", if self[(x, y)] { "⬜" } else { "⬛" })?;
+                write!(f, "{}", if self[(x, y)] { "##" } else { "  " })?;
+            }
+            writeln!(f)?
+        }
+        Ok(())
+    }
+}
+impl Default for Display {
+    fn default() -> Self {
+        Self {
+            pixel: [false; Display::HEIGHT * Display::WIDTH],
+        }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use crate::fonts::Font;
+
+    use super::*;
+
     #[test]
     fn test_display() {
         let mut display = Display::new();
-        display[(16usize, 32usize)] = true;
-        for y in 0..HEIGHT {
-            for x in 0..WIDTH {
-                print!("{}", if display[(y, x)] { "⬜" } else { "⬛" });
-            }
-            println!("")
-        }
+        display[(3, 2)] = true;
+        display[(2, 3)] = true;
+        println!("{}", display)
+    }
+    #[test]
+    fn test_fonts() {
+        let mut display = Display::new();
+        let font = Font::try_from(1).unwrap();
+        display.font_at(font, 20usize, 20usize);
+        println!("{display}")
     }
 }

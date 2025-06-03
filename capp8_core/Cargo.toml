@@ -5,3 +5,12 @@ edition = "2024"
 
 [dependencies]
 rand = "0.9.1"
+
+[[example]]
+name = "ibm"
+# ibm = "./../rom_tests/ibm.rs"
+[[example]]
+name = "chip8_logo"
+
+[[example]]
+name = "corax"

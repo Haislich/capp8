@@ -99,7 +99,7 @@ pub enum Instruction {
     Draw {
         reg_x: usize,
         reg_y: usize,
-        height: u8,
+        nibble: u8,
     },
 
     /// Ex9E - SKP Vx  
