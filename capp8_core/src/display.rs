@@ -1,8 +1,6 @@
 #![allow(unused)]
 use std::ops::{Index, IndexMut};
 
-use crate::fonts::Font;
-
 #[derive(Clone)]
 pub struct Display {
     pixel: [bool; Display::HEIGHT * Display::WIDTH],
@@ -27,17 +25,6 @@ impl Display {
         }
         flip
     }
-
-    pub fn font_at<T: Into<usize>>(&mut self, font: Font, x: T, y: T) {
-        let sprite = font.sprite();
-        let w = x.into();
-        let h = y.into();
-        for x in 0..4 {
-            for y in 0..5 {
-                self[(w + x, h + y)] = sprite[y * 4 + x]
-            }
-        }
-    }
 }
 impl Index<(usize, usize)> for Display {
     type Output = bool;
@@ -54,13 +41,13 @@ impl IndexMut<(usize, usize)> for Display {
 }
 impl std::fmt::Display for Display {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // write!(f, "\x1B[2J\x1B[H")?;
-        write!(f, "\x1B[H")?;
+        write!(f, "\x1B[2J\x1B[H")?;
+        // write!(f, "\x1B[H")?;
 
         for y in 0..Display::HEIGHT {
             for x in 0..Display::WIDTH {
-                // write!(f, "{}", if self[(x, y)] { "⬜" } else { "⬛" })?;
-                write!(f, "{}", if self[(x, y)] { "##" } else { "  " })?;
+                write!(f, "{}", if self[(x, y)] { "⬜" } else { "⬛" })?;
+                // write!(f, "{}", if self[(x, y)] { "##" } else { "  " })?;
             }
             writeln!(f)?
         }
@@ -76,7 +63,6 @@ impl Default for Display {
 }
 #[cfg(test)]
 mod tests {
-    use crate::fonts::Font;
 
     use super::*;
 
@@ -86,12 +72,5 @@ mod tests {
         display[(3, 2)] = true;
         display[(2, 3)] = true;
         println!("{}", display)
-    }
-    #[test]
-    fn test_fonts() {
-        let mut display = Display::new();
-        let font = Font::try_from(1).unwrap();
-        display.font_at(font, 20usize, 20usize);
-        println!("{display}")
     }
 }

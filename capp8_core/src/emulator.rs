@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{display::Display, fonts::Font, instruction::Instruction, opcode::Opcode};
+use crate::{display::Display, fonts::FONTS, instruction::Instruction, opcode::Opcode};
 use rand::{Rng, rngs::ThreadRng};
 
 pub struct Emulator {
@@ -28,7 +28,7 @@ pub struct Emulator {
 impl Emulator {
     pub fn new<P: AsRef<Path>>(rom_path: P) -> Result<Self, std::io::Error> {
         let mut memory = [0; 4096];
-        memory[0x50..=0x9F].copy_from_slice(&Font::FONTS[..]);
+        memory[0x50..=0x9F].copy_from_slice(&FONTS[..]);
         let mut file = OpenOptions::new().read(true).open(rom_path)?;
         let mut buf: Vec<u8> = Vec::new();
         let file_size = file.read_to_end(&mut buf)?;
@@ -203,7 +203,7 @@ impl Emulator {
             }
             Instruction::StoreRegFromImm { reg, imm } => self.v[reg] = imm,
             Instruction::StoreRegFromReg { reg_x, reg_y } => self.v[reg_x] = self.v[reg_y],
-            Instruction::AddRegImm { reg, imm } => self.v[reg] += imm,
+            Instruction::AddRegImm { reg, imm } => self.v[reg] = self.v[reg].wrapping_add(imm),
             Instruction::AddRegReg { reg_x, reg_y } => {
                 // TODO: Check. I think I should upcast into an u16 and then downcast
                 let (v_x, carry) = self.v[reg_x].overflowing_add(self.v[reg_y]);
@@ -271,14 +271,14 @@ impl Emulator {
                 self.v[0xF] = if flip { 1 } else { 0 };
             }
             Instruction::SkipIfKey { reg } => {
-                todo!()
+                unimplemented!("Skip if key is pressed not implemeted yet")
             }
             Instruction::SkipIfNotKey { reg } => {
-                todo!()
+                unimplemented!("Skip if key is not pressed not implemeted yet")
             }
             Instruction::LoadDelayTimer { reg } => self.v[reg] = self.delay_timer,
             Instruction::WaitKeyPress { reg } => {
-                todo!()
+                unimplemented!("Wait for key press not implemeted yet")
             }
             Instruction::SetDelayTimer { reg } => self.delay_timer = self.v[reg],
             Instruction::SetSoundTimer { reg } => self.sound_timer = self.v[reg],
@@ -288,7 +288,10 @@ impl Emulator {
                 self.i = self.v[reg] as u16;
             }
             Instruction::StoreBCD { reg } => {
-                todo!()
+                let v_x = self.v[reg];
+                self.memory[self.i as usize] = (v_x >> 2) & 1;
+                self.memory[self.i as usize] = (v_x >> 1) & 1;
+                self.memory[self.i as usize] = (v_x) & 1
             }
             Instruction::StoreRegisters { reg } => {
                 for offset in 0..=reg {
@@ -301,20 +304,5 @@ impl Emulator {
                 }
             } // _ => todo!(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn decode_sys() {
-        // let emu = Emulator::new();
-        // emu.decode(0xFFFF);
-        // emu.decode(0x000F);
-        // emu.decode(0x00F0);
-        // emu.decode(0xCE00);
-        // emu.decode(0x0E80);
-        // emu.decode(0x0E0A);
     }
 }
