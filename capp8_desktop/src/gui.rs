@@ -37,29 +37,30 @@ impl DesktopFrontend {
 impl Frontend for DesktopFrontend {
     fn poll_keys(&mut self) {
         self.emulator.set_keypad([
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_ONE),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_TWO),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_THREE),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_FOUR),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_Q), //1
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_W),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_E),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_R),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_A),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_S),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_D),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_F),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_Z),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_X),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_C),
-            self.raylib_handle.is_key_pressed(KeyboardKey::KEY_V),
-        ])
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_X),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_ONE),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_TWO),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_THREE),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_Q),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_W),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_E),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_A),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_S),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_D),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_Z),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_C),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_FOUR),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_R),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_F),
+            self.raylib_handle.is_key_down(KeyboardKey::KEY_V),
+        ]);
+        // println!()
     }
 
     fn render_display(&mut self) {
         let x_scale = self.raylib_handle.get_screen_width() / 64;
         let y_scale = self.raylib_handle.get_screen_height() / 32;
-        println!("{} {}", x_scale, y_scale);
+        // println!("{} {}", x_scale, y_scale);
         let mut d = self.raylib_handle.begin_drawing(&self.raylib_thread);
         for x in 0..64usize {
             for y in 0..32usize {

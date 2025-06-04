@@ -170,7 +170,8 @@ impl Emulator {
             _ => unimplemented!(),
         }
     }
-    pub fn execute(&mut self, instruction: Instruction) {
+    fn execute(&mut self, instruction: Instruction) {
+        println!("{:?}", self.keypad);
         match instruction {
             Instruction::Sys { addr: _ } => {
                 // TODO: Should probably add a log and ignore maybe (?)
@@ -274,15 +275,24 @@ impl Emulator {
                 self.v[0xF] = if flip { 1 } else { 0 };
             }
             Instruction::SkipIfKey { reg } => {
-                unimplemented!("Skip if key is pressed not implemeted yet")
+                if self.keypad[self.v[reg] as usize] {
+                    self.program_counter += 2
+                }
             }
             Instruction::SkipIfNotKey { reg } => {
-                unimplemented!("Skip if key is not pressed not implemeted yet")
+                if !self.keypad[self.v[reg] as usize] {
+                    self.program_counter += 2
+                }
             }
             Instruction::LoadDelayTimer { reg } => self.v[reg] = self.delay_timer,
-            Instruction::WaitKeyPress { reg } => {
-                unimplemented!("Wait for key press not implemeted yet")
-            }
+            Instruction::WaitKeyPress { reg } => 'wait: loop {
+                for (idx, key) in self.keypad.iter().enumerate() {
+                    if *key {
+                        self.v[reg] = idx as u8;
+                        break 'wait;
+                    }
+                }
+            },
             Instruction::SetDelayTimer { reg } => self.delay_timer = self.v[reg],
             Instruction::SetSoundTimer { reg } => self.sound_timer = self.v[reg],
             Instruction::AddI { reg } => self.i += self.v[reg] as u16,
