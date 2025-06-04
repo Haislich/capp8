@@ -1,5 +1,5 @@
 [package]
-name = "capp8_gui"
+name = "capp8_desktop"
 version = "0.1.0"
 edition = "2024"
 

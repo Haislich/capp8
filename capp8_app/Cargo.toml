@@ -1,0 +1,24 @@
+[package]
+name = "capp8_app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+capp8_core = { path = "../capp8_core" }
+capp8_desktop = { path = "../capp8_desktop" }
+
+
+[[example]]
+name = "ibm"
+
+[[example]]
+name = "chip8_logo"
+
+[[example]]
+name = "corax"
+
+[[example]]
+name = "flags"
+
+[[example]]
+name = "keypad"

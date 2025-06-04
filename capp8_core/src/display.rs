@@ -46,8 +46,8 @@ impl std::fmt::Display for Display {
 
         for y in 0..Display::HEIGHT {
             for x in 0..Display::WIDTH {
-                write!(f, "{}", if self[(x, y)] { "⬜" } else { "⬛" })?;
-                // write!(f, "{}", if self[(x, y)] { "##" } else { "  " })?;
+                // write!(f, "{}", if self[(x, y)] { "⬜" } else { "⬛" })?;
+                write!(f, "{}", if self[(x, y)] { "##" } else { "  " })?;
             }
             writeln!(f)?
         }

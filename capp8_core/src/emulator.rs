@@ -9,7 +9,9 @@ use std::{
     time::Duration,
 };
 
-use crate::{display::Display, fonts::FONTS, instruction::Instruction, opcode::Opcode};
+use crate::{
+    display::Display, fonts::FONTS, frontend::Frontend, instruction::Instruction, opcode::Opcode,
+};
 use rand::{Rng, rngs::ThreadRng};
 
 pub struct Emulator {
@@ -22,11 +24,12 @@ pub struct Emulator {
     delay_timer: u8,
     sound_timer: u8,
     display: Display,
+    keypad: [bool; 16],
     rng: ThreadRng,
 }
 
 impl Emulator {
-    pub fn new<P: AsRef<Path>>(rom_path: P) -> Result<Self, std::io::Error> {
+    pub fn new<P: AsRef<Path>>(rom_path: &P) -> Result<Self, std::io::Error> {
         let mut memory = [0; 4096];
         memory[0x50..=0x9F].copy_from_slice(&FONTS[..]);
         let mut file = OpenOptions::new().read(true).open(rom_path)?;
@@ -43,21 +46,21 @@ impl Emulator {
             delay_timer: 0,
             sound_timer: 0,
             display: Display::new(),
+            keypad: [false; 16],
             rng: rand::rng(),
         })
     }
-    pub fn run(&mut self) {
-        loop {
-            self.cycle();
-        }
+    pub fn display(&self) -> &Display {
+        &self.display
     }
-    pub fn cycle(&mut self) {
+    pub fn set_keypad(&mut self, keypad: [bool; 16]) {
+        self.keypad = keypad;
+    }
+    pub fn step(&mut self) {
         let opcode = self.fetch();
         self.program_counter += 2;
         let instruction = self.decode(opcode);
         self.execute(instruction);
-        println!("{}", self.display);
-        thread::sleep(Duration::from_millis(45));
     }
 
     /// Read the instruction that PC is currently pointing at from memory.
@@ -302,7 +305,7 @@ impl Emulator {
                 for offset in 0..=reg {
                     self.v[offset] = self.memory[(self.i as usize) + offset]
                 }
-            } // _ => todo!(),
+            }
         }
     }
 }
