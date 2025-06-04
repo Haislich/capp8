@@ -186,7 +186,6 @@ impl Emulator {
         }
     }
     fn execute(&mut self, instruction: Instruction) {
-        // println!("{:?}", self.keypad);
         match instruction {
             Instruction::Sys { addr: _ } => {
                 // TODO: Should probably add a log and ignore maybe (?)
@@ -301,8 +300,6 @@ impl Emulator {
             }
             Instruction::LoadDelayTimer { reg } => self.v[reg] = self.delay_timer,
             Instruction::WaitKeyPress { reg } => {
-                // 'wait: loop {
-                // println! {"Iaaaa we're here"};
                 let mut key_pressed = false;
                 for (idx, key) in self.keypad.iter().enumerate() {
                     if *key {

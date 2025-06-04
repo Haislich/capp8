@@ -19,7 +19,6 @@ impl Display {
         for shift in (0usize..8usize).rev() {
             let new_pixel = ((byte >> shift) & 1) > 0;
             let idx = ((x + (7 - shift)) % Self::WIDTH, y % Self::HEIGHT);
-            println!("idx {idx:?}");
             let old_pixel = self[idx];
             flip |= old_pixel;
             self[idx] ^= new_pixel;
@@ -66,6 +65,7 @@ impl Default for Display {
 mod tests {
 
     use super::*;
+    use rand;
 
     #[test]
     fn test_display() {

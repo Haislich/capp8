@@ -65,13 +65,11 @@ impl Frontend for DesktopFrontend {
             self.raylib_handle.is_key_down(KeyboardKey::KEY_F),
             self.raylib_handle.is_key_down(KeyboardKey::KEY_V),
         ]);
-        // println!()
     }
 
     fn render_display(&mut self) {
         let x_scale = self.raylib_handle.get_screen_width() / 64;
         let y_scale = self.raylib_handle.get_screen_height() / 32;
-        // println!("{} {}", x_scale, y_scale);
         let mut d = self.raylib_handle.begin_drawing(&self.raylib_thread);
         for x in 0..64usize {
             for y in 0..32usize {
