@@ -26,6 +26,7 @@ pub struct Emulator {
     display: Display,
     keypad: [bool; 16],
     rng: ThreadRng,
+    timer_accum: Duration,
 }
 
 impl Emulator {
@@ -48,6 +49,7 @@ impl Emulator {
             display: Display::new(),
             keypad: [false; 16],
             rng: rand::rng(),
+            timer_accum: Duration::new(0, 0),
         })
     }
     pub fn display(&self) -> &Display {
@@ -56,11 +58,24 @@ impl Emulator {
     pub fn set_keypad(&mut self, keypad: [bool; 16]) {
         self.keypad = keypad;
     }
-    pub fn step(&mut self) {
+    pub fn step(&mut self, dt: Duration) {
         let opcode = self.fetch();
         self.program_counter += 2;
         let instruction = self.decode(opcode);
         self.execute(instruction);
+        // 2. accumulate elapsed time
+        self.timer_accum += dt; // dt comes from the main loop
+
+        // 3. tick timers every 16-17 ms no matter how many opcodes we executed
+        while self.timer_accum >= Duration::from_micros(16_667) {
+            self.timer_accum -= Duration::from_micros(16_667);
+            if self.delay_timer > 0 {
+                self.delay_timer -= 1;
+            }
+            if self.sound_timer > 0 {
+                self.sound_timer -= 1;
+            }
+        }
     }
 
     /// Read the instruction that PC is currently pointing at from memory.
@@ -171,7 +186,7 @@ impl Emulator {
         }
     }
     fn execute(&mut self, instruction: Instruction) {
-        println!("{:?}", self.keypad);
+        // println!("{:?}", self.keypad);
         match instruction {
             Instruction::Sys { addr: _ } => {
                 // TODO: Should probably add a log and ignore maybe (?)
@@ -285,14 +300,23 @@ impl Emulator {
                 }
             }
             Instruction::LoadDelayTimer { reg } => self.v[reg] = self.delay_timer,
-            Instruction::WaitKeyPress { reg } => 'wait: loop {
+            Instruction::WaitKeyPress { reg } => {
+                // 'wait: loop {
+                // println! {"Iaaaa we're here"};
+                let mut key_pressed = false;
                 for (idx, key) in self.keypad.iter().enumerate() {
                     if *key {
+                        key_pressed = true;
                         self.v[reg] = idx as u8;
-                        break 'wait;
+                        break;
                     }
                 }
-            },
+                // TODO: Find a better solution
+                // super hacky, rewind the program ccounter by two
+                if !key_pressed {
+                    self.program_counter -= 2;
+                }
+            }
             Instruction::SetDelayTimer { reg } => self.delay_timer = self.v[reg],
             Instruction::SetSoundTimer { reg } => self.sound_timer = self.v[reg],
             Instruction::AddI { reg } => self.i += self.v[reg] as u16,

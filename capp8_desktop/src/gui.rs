@@ -1,5 +1,6 @@
 use std::ffi::OsStr;
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 use capp8_core::emulator::Emulator;
 use capp8_core::frontend::Frontend;
@@ -13,8 +14,18 @@ pub struct DesktopFrontend {
 }
 impl DesktopFrontend {
     pub fn new<P: AsRef<Path>>(rom_path: P, width: i32, height: i32) -> Self {
-        let emulator =
-            Emulator::new(&rom_path).expect("Could not find the specified rom {rom_path}");
+        let emulator = Emulator::new(&rom_path).expect(
+            format!(
+                "Could not find the specified rom {}",
+                rom_path
+                    .as_ref()
+                    // .file_name()
+                    .to_str()
+                    // .and_then(OsStr::to_str)
+                    .unwrap()
+            )
+            .as_str(),
+        );
         let title = rom_path
             .as_ref()
             .file_stem()
@@ -81,16 +92,21 @@ impl Frontend for DesktopFrontend {
 
     fn play_sound(&self) {}
 
-    fn step(&mut self) {
+    fn step(&mut self, duration: Duration) {
         self.poll_keys();
-        self.emulator.step();
+        self.emulator.step(duration);
         self.render_display();
         self.play_sound();
     }
 
     fn run(&mut self) {
+        let mut last = Instant::now();
+
         while !self.raylib_handle.window_should_close() {
-            self.step();
+            let now = Instant::now();
+            let dt = now - last;
+            last = now;
+            self.step(dt);
         }
     }
 }

@@ -18,7 +18,8 @@ impl Display {
         let mut flip = false;
         for shift in (0usize..8usize).rev() {
             let new_pixel = ((byte >> shift) & 1) > 0;
-            let idx = ((x + (7 - shift) % Self::HEIGHT), y % Self::HEIGHT);
+            let idx = ((x + (7 - shift)) % Self::WIDTH, y % Self::HEIGHT);
+            println!("idx {idx:?}");
             let old_pixel = self[idx];
             flip |= old_pixel;
             self[idx] ^= new_pixel;
